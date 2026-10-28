@@ -1,3 +1,21 @@
-html, body, #root { height: 100%; margin: 0; }
-.leaflet-container { height: 100%; width: 100%; }
-.heat { filter: blur(14px); }
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet fills the map pane */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Heatmap circle softening */
+.heat { filter: blur(18px); }
+
+/* Tooltip cursor on checkpoint rows */
+tr[title] { cursor: help; }
