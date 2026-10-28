@@ -8,13 +8,7 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Global Dark/Amber Scrollbars (Cross-Browser: Chrome, Edge, Firefox) */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(245, 184, 46, 0.3) transparent;
-}
-
-/* Hide native Windows scrollbar stepper buttons (up/down arrows) */
+/* Custom Global Dark/Amber Scrollbars */
 ::-webkit-scrollbar-button {
   display: none !important;
   width: 0 !important;
@@ -22,8 +16,8 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -31,17 +25,27 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 184, 46, 0.3);
+  background-color: rgba(245, 184, 46, 0.28);
   border-radius: 9999px;
-  transition: background 0.2s ease;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 184, 46, 0.8);
+  background-color: rgba(245, 184, 46, 0.75);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Fallback for Firefox only (avoids overriding Chrome's custom ::-webkit-scrollbar) */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245, 184, 46, 0.3) transparent;
+  }
 }
 
 /* Leaflet fills the map pane */

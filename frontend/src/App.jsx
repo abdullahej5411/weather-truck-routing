@@ -210,17 +210,17 @@ export default function App() {
             bgcolor: '#0b1120',
             borderRight: { md: '1px solid rgba(255,255,255,0.07)' },
             borderBottom: { xs: '1px solid rgba(255,255,255,0.07)', md: 'none' },
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
-            /* Fancy amber scrollbar */
+            /* Modern floating pill scrollbar */
             '&::-webkit-scrollbar': { width: '5px' },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(245,184,46,0.35)',
-              borderRadius: '10px',
-              transition: 'background 0.2s ease',
+              backgroundColor: 'rgba(245,184,46,0.28)',
+              borderRadius: '9999px',
+              border: '1px solid transparent',
+              backgroundClip: 'padding-box',
+              transition: 'background-color 0.2s ease',
             },
-            '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(245,184,46,0.75)' },
+            '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(245,184,46,0.75)' },
           }}
         >
           {/* Branded header */}
