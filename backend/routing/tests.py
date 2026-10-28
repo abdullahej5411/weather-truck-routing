@@ -28,6 +28,28 @@ class RiskRules(unittest.TestCase):
         self.assertEqual(self.lvl(w=10, r=0.3, s=2.5), 3)
 
 
+class RecommendationHierarchy(unittest.TestCase):
+    def test_ranking_hierarchy(self):
+        from .services import rank_key
+        # Route 1: 0 severe, 10 high, avg 1.2, 5 hrs
+        r1 = {"summary": {"no_travel_mi": 0, "severe_mi": 0, "high_mi": 10, "avg_risk": 1.2}, "hours": 5.0}
+        # Route 2: 5 severe, 0 high, avg 1.0, 4 hrs (should lose to r1 because r1 has fewer severe miles)
+        r2 = {"summary": {"no_travel_mi": 0, "severe_mi": 5, "high_mi": 0, "avg_risk": 1.0}, "hours": 4.0}
+        self.assertLess(rank_key(r1), rank_key(r2))
+
+        # Tie on severe miles (both 0), r3 has fewer high miles
+        r3 = {"summary": {"no_travel_mi": 0, "severe_mi": 0, "high_mi": 2, "avg_risk": 1.5}, "hours": 6.0}
+        self.assertLess(rank_key(r3), rank_key(r1))
+
+        # Tie on severe and high miles, r4 has lower average risk
+        r4 = {"summary": {"no_travel_mi": 0, "severe_mi": 0, "high_mi": 2, "avg_risk": 0.8}, "hours": 6.0}
+        self.assertLess(rank_key(r4), rank_key(r3))
+
+        # Tie on severe, high, and avg risk, r5 has shorter travel time
+        r5 = {"summary": {"no_travel_mi": 0, "severe_mi": 0, "high_mi": 2, "avg_risk": 0.8}, "hours": 4.5}
+        self.assertLess(rank_key(r5), rank_key(r4))
+
+
 class PlanApi(SimpleTestCase):
     def post(self, **over):
         body = {"origin": "A", "destination": "B", "weight_lb": 40000,

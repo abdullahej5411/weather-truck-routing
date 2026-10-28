@@ -22,7 +22,7 @@ React 18 + Material UI + Leaflet; Django 5 + Django REST Framework (serializer v
 - **Checkpoints:** every 10 / 25 / 50 miles (selectable) plus the destination. ETA = departure + route duration scaled by distance. Weather is read for the hour of the ETA.
 - **Risk:** worst of wind, rain, snow per checkpoint (`routing/risk.py`). Load rules: 55+ mph is No Travel; 45-54 mph over 30,000 lb is No Travel; 35-44 mph over 40,000 lb is Severe. Wind cut points are lower-inclusive; rain/snow upper-inclusive (1.00 in/hr is Severe, above is No Travel).
 - **Miles per level:** each checkpoint covers the miles halfway to its neighbours.
-- **Recommendation:** fewest No Travel miles, then Severe, High, lowest distance-weighted average risk, shortest time. Miles are bucketed to 5 so near-ties fall through to the next criterion. The UI states which criterion decided it.
+- **Recommendation:** strict hierarchy matching the assessment specification: (1) Fewest No Travel miles, (2) Fewest Severe miles, (3) Fewest High miles, (4) Lowest distance-weighted average risk, (5) Shortest travel time. The UI states which criterion decided it.
 - **Heatmap:** blurred circles at every checkpoint, coloured by the risk at that spot N hours after departure (0-48 slider).
 
 ## Limits

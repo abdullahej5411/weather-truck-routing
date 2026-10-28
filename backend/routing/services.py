@@ -177,11 +177,16 @@ def analyse(i, r, wx, depart, weight):
 
 
 def rank_key(r):
-    """Spec order: fewest Severe miles, fewest High, lowest average risk, shortest time.
-    Blocked (No Travel) miles come first, and miles are bucketed to 5 so near-ties fall through."""
+    """Spec preference hierarchy:
+    1. Fewest No Travel miles (critical safety block)
+    2. Fewest Severe miles
+    3. Fewest High miles
+    4. Lowest average risk
+    5. Shortest travel time
+    """
     s = r["summary"]
-    return (round(s["no_travel_mi"]), round(s["severe_mi"] / 5), round(s["high_mi"] / 5),
-            round(s["avg_risk"], 1), r["hours"])
+    return (round(s["no_travel_mi"], 1), round(s["severe_mi"], 1), round(s["high_mi"], 1),
+            round(s["avg_risk"], 2), round(r["hours"], 2))
 
 
 CRITERIA = [("No Travel miles", "no_travel_mi", "mi"), ("Severe miles", "severe_mi", "mi"),
