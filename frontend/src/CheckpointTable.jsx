@@ -6,21 +6,38 @@ import {
 } from '@mui/material';
 import { COLORS, NAMES, fmtTime } from './lib';
 
-export default function CheckpointTable({ route }) {
+export default function CheckpointTable({ route, heat = false, hour = 0, departure = null }) {
   const [view, setView] = useState('cards'); // 'cards' | 'table'
   const [openModal, setOpenModal] = useState(false);
   const [riskFilter, setRiskFilter] = useState('ALL');
-
   const [showAllInSidebar, setShowAllInSidebar] = useState(false);
 
   if (!route || !route.checkpoints) return null;
+
+  const forecastTime = departure ? fmtTime(new Date(departure).getTime() + hour * 36e5) : null;
+
+  const getPointData = (p) => {
+    const lvl = (heat && p.forecast) ? p.forecast[hour] : p.level;
+    const wx = (heat && p.forecast_weather) ? p.forecast_weather[hour] : [p.wind, p.rain, p.snow];
+    return {
+      lvl,
+      lvlName: NAMES[lvl],
+      color: COLORS[lvl],
+      wind: wx ? wx[0] : p.wind,
+      rain: wx ? wx[1] : p.rain,
+      snow: wx ? wx[2] : p.snow,
+    };
+  };
 
   const displayedCheckpoints = showAllInSidebar ? route.checkpoints : route.checkpoints.slice(0, 6);
   const hasMore = route.checkpoints.length > 6;
 
   const filteredCheckpoints = riskFilter === 'ALL'
     ? route.checkpoints
-    : route.checkpoints.filter((p) => p.level_name.toLowerCase() === riskFilter.toLowerCase());
+    : route.checkpoints.filter((p) => {
+        const { lvlName } = getPointData(p);
+        return lvlName.toLowerCase() === riskFilter.toLowerCase();
+      });
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -94,59 +111,73 @@ export default function CheckpointTable({ route }) {
       {/* ─── SIDEBAR VIEW: CARDS (Clean natural flow, ZERO double scrollbar) ─── */}
       {view === 'cards' ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {displayedCheckpoints.map((p) => (
-            <Box
-              key={p.mile}
-              title={p.reasons.join('\n')}
-              sx={{
-                p: 1.2,
-                borderRadius: 2,
-                bgcolor: 'rgba(255,255,255,0.025)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderLeft: `4px solid ${COLORS[p.level]}`,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.05)',
-                  transform: 'translateX(2px)',
-                },
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#f0f4ff', lineHeight: 1.2, fontSize: '0.82rem' }}>
-                    Mile {Math.round(p.mile)}
+          {displayedCheckpoints.map((p) => {
+            const d = getPointData(p);
+            return (
+              <Box
+                key={p.mile}
+                title={p.reasons?.join('\n') || ''}
+                sx={{
+                  p: 1.2,
+                  borderRadius: 2,
+                  bgcolor: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderLeft: `4px solid ${d.color}`,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    transform: 'translateX(2px)',
+                  },
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="body2" fontWeight={700} sx={{ color: '#f0f4ff', lineHeight: 1.2, fontSize: '0.82rem' }}>
+                      Mile {Math.round(p.mile)}
+                    </Typography>
+                    {heat ? (
+                      <>
+                        <Typography variant="caption" sx={{ color: '#60a5fa', fontSize: '0.71rem', display: 'block', fontWeight: 600 }}>
+                          +{hour}h ({forecastTime})
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#4b6080', fontSize: '0.67rem' }}>
+                          ETA {fmtTime(p.eta)}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
+                        ETA {fmtTime(p.eta)}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Chip
+                    size="small"
+                    label={d.lvlName}
+                    sx={{
+                      bgcolor: d.color,
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.66rem',
+                      height: 20,
+                      borderRadius: '5px',
+                    }}
+                  />
+                </Stack>
+
+                <Stack direction="row" spacing={1.5} sx={{ mt: 0.8 }} flexWrap="wrap">
+                  <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
+                    Wind: <strong style={{ color: '#f0f4ff' }}>{d.wind}</strong> mph
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
-                    ETA {fmtTime(p.eta)}
+                    Rain: <strong style={{ color: '#f0f4ff' }}>{d.rain}</strong> in/h
                   </Typography>
-                </Box>
-                <Chip
-                  size="small"
-                  label={p.level_name}
-                  sx={{
-                    bgcolor: COLORS[p.level],
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.66rem',
-                    height: 20,
-                    borderRadius: '5px',
-                  }}
-                />
-              </Stack>
-
-              <Stack direction="row" spacing={1.5} sx={{ mt: 0.8 }} flexWrap="wrap">
-                <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
-                  Wind: <strong style={{ color: '#f0f4ff' }}>{p.wind}</strong> mph
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
-                  Rain: <strong style={{ color: '#f0f4ff' }}>{p.rain}</strong> in/h
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
-                  Snow: <strong style={{ color: '#f0f4ff' }}>{p.snow}</strong> in/h
-                </Typography>
-              </Stack>
-            </Box>
-          ))}
+                  <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
+                    Snow: <strong style={{ color: '#f0f4ff' }}>{d.snow}</strong> in/h
+                  </Typography>
+                </Stack>
+              </Box>
+            );
+          })}
 
           {hasMore && (
             <Button
@@ -186,35 +217,38 @@ export default function CheckpointTable({ route }) {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {['Mile', 'ETA', 'Wind', 'Rain', 'Snow', 'Risk'].map((h) => (
+                  {['Mile', heat ? `+${hour}h Time` : 'ETA', 'Wind', 'Rain', 'Snow', 'Risk'].map((h) => (
                     <TableCell key={h} sx={{ px: 0.75, py: 0.75 }}>{h}</TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {displayedCheckpoints.map((p) => (
-                  <TableRow
-                    key={p.mile}
-                    hover
-                    title={p.reasons.join('\n')}
-                    sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.04) !important' } }}
-                  >
-                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{Math.round(p.mile)}</TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', px: 0.75, py: 0.7, fontSize: '0.72rem' }}>
-                      {fmtTime(p.eta)}
-                    </TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.wind}</TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.rain}</TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.snow}</TableCell>
-                    <TableCell sx={{ px: 0.75, py: 0.7 }}>
-                      <Chip
-                        size="small"
-                        label={p.level_name}
-                        sx={{ bgcolor: COLORS[p.level], color: '#fff', fontWeight: 600, fontSize: '0.65rem', height: 18 }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {displayedCheckpoints.map((p) => {
+                  const d = getPointData(p);
+                  return (
+                    <TableRow
+                      key={p.mile}
+                      hover
+                      title={p.reasons?.join('\n') || ''}
+                      sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.04) !important' } }}
+                    >
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{Math.round(p.mile)}</TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', px: 0.75, py: 0.7, fontSize: '0.72rem' }}>
+                        {heat ? `+${hour}h (${forecastTime})` : fmtTime(p.eta)}
+                      </TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.wind}</TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.rain}</TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.snow}</TableCell>
+                      <TableCell sx={{ px: 0.75, py: 0.7 }}>
+                        <Chip
+                          size="small"
+                          label={d.lvlName}
+                          sx={{ bgcolor: d.color, color: '#fff', fontWeight: 600, fontSize: '0.65rem', height: 18 }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -267,9 +301,24 @@ export default function CheckpointTable({ route }) {
         <DialogTitle sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="h6" fontWeight={700} sx={{ color: '#f0f4ff', fontSize: '1.05rem' }}>
-                {route.label} — Checkpoints & Weather Log
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Typography variant="h6" fontWeight={700} sx={{ color: '#f0f4ff', fontSize: '1.05rem' }}>
+                  {route.label} — Checkpoints & Weather Log
+                </Typography>
+                {heat && (
+                  <Chip
+                    size="small"
+                    label={`+${hour}h Forecast (${forecastTime})`}
+                    sx={{
+                      bgcolor: 'rgba(59,130,246,0.2)',
+                      color: '#93c5fd',
+                      border: '1px solid rgba(59,130,246,0.35)',
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                    }}
+                  />
+                )}
+              </Stack>
               <Typography variant="caption" sx={{ color: '#7c8db5' }}>
                 {Math.round(route.distance_mi)} miles • {route.checkpoints.length} sample points
               </Typography>
@@ -318,42 +367,64 @@ export default function CheckpointTable({ route }) {
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Mile</TableCell>
-                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Estimated Arrival (ETA)</TableCell>
+                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Arrival (ETA)</TableCell>
+                  {heat && <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>+{hour}h Time</TableCell>}
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Wind (mph)</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Rain (in/hr)</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Snow (in/hr)</TableCell>
-                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Risk Level</TableCell>
-                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Factors</TableCell>
+                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>
+                    {heat ? `+${hour}h Risk` : 'Risk Level'}
+                  </TableCell>
+                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>ETA Risk</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredCheckpoints.map((p) => (
-                  <TableRow
-                    key={p.mile}
-                    hover
-                    sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.03) !important' } }}
-                  >
-                    <TableCell sx={{ color: '#f0f4ff', fontWeight: 600, py: 1, px: 2 }}>
-                      {Math.round(p.mile)}
-                    </TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', py: 1, px: 2 }}>
-                      {fmtTime(p.eta)}
-                    </TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{p.wind} mph</TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{p.rain} in/hr</TableCell>
-                    <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{p.snow} in/hr</TableCell>
-                    <TableCell sx={{ py: 1, px: 2 }}>
-                      <Chip
-                        size="small"
-                        label={p.level_name}
-                        sx={{ bgcolor: COLORS[p.level], color: '#fff', fontWeight: 600, fontSize: '0.7rem', height: 20 }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ color: '#7c8db5', fontSize: '0.75rem', py: 1, px: 2 }}>
-                      {p.reasons.join(', ')}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredCheckpoints.map((p) => {
+                  const d = getPointData(p);
+                  return (
+                    <TableRow
+                      key={p.mile}
+                      hover
+                      sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.03) !important' } }}
+                    >
+                      <TableCell sx={{ color: '#f0f4ff', fontWeight: 600, py: 1, px: 2 }}>
+                        {Math.round(p.mile)}
+                      </TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', py: 1, px: 2 }}>
+                        {fmtTime(p.eta)}
+                      </TableCell>
+                      {heat && (
+                        <TableCell sx={{ color: '#60a5fa', whiteSpace: 'nowrap', py: 1, px: 2, fontSize: '0.75rem' }}>
+                          +{hour}h ({forecastTime})
+                        </TableCell>
+                      )}
+                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.wind} mph</TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.rain} in/hr</TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.snow} in/hr</TableCell>
+                      <TableCell sx={{ py: 1, px: 2 }}>
+                        <Chip
+                          size="small"
+                          label={d.lvlName}
+                          sx={{ bgcolor: d.color, color: '#fff', fontWeight: 600, fontSize: '0.7rem', height: 20 }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ py: 1, px: 2 }}>
+                        <Chip
+                          size="small"
+                          label={p.level_name}
+                          variant="outlined"
+                          sx={{
+                            borderColor: COLORS[p.level],
+                            color: COLORS[p.level],
+                            fontWeight: 600,
+                            fontSize: '0.67rem',
+                            height: 18
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

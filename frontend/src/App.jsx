@@ -409,17 +409,33 @@ export default function App() {
                 {route && (
                   <Box sx={{ mt: 2.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                      <Typography
-                        variant="overline"
-                        sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px' }}
-                      >
-                        Checkpoints — {route.label}
-                      </Typography>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Typography
+                          variant="overline"
+                          sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px' }}
+                        >
+                          Checkpoints — {route.label}
+                        </Typography>
+                        {heat && (
+                          <Chip
+                            size="small"
+                            label={`+${hour}h Forecast`}
+                            sx={{
+                              height: 18,
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              bgcolor: 'rgba(245,184,46,0.15)',
+                              color: '#f5b82e',
+                              border: '1px solid rgba(245,184,46,0.3)',
+                            }}
+                          />
+                        )}
+                      </Stack>
                       <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.7rem' }}>
                         Every {res.interval_mi} mi{f.interval === 'auto' ? ' (Auto)' : ''}
                       </Typography>
                     </Stack>
-                    <CheckpointTable route={route} />
+                    <CheckpointTable route={route} heat={heat} hour={slowHour} departure={res?.departure} />
                   </Box>
                 )}
               </Box>

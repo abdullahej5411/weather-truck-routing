@@ -156,6 +156,7 @@ def analyse(i, r, wx, depart, weight):
         p["wind"], p["rain"], p["snow"] = (round(v, 2) for v in vals)
         # Heatmap: conditions at this checkpoint 0..48 h after departure.
         p["forecast"] = [assess(*_at(w, depart + dt.timedelta(hours=h)), weight)[0] for h in range(49)]
+        p["forecast_weather"] = [[round(v, 2) for v in _at(w, depart + dt.timedelta(hours=h))] for h in range(49)]
         lo = (ms[n - 1] + ms[n]) / 2 if n else ms[0]  # each checkpoint owns the miles around it
         hi = (ms[n] + ms[n + 1]) / 2 if n < len(ms) - 1 else ms[n]
         p["segment_mi"] = round(hi - lo, 1)
