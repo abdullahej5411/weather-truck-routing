@@ -408,40 +408,62 @@ export default function App() {
 
                 {route && (
                   <Box sx={{ mt: 2.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.2 }}>
-                      <Typography
-                        variant="overline"
-                        sx={{
-                          color: '#4b6080',
-                          fontSize: '0.66rem',
-                          letterSpacing: '1.1px',
-                          fontWeight: 700,
-                          whiteSpace: 'nowrap',
-                          lineHeight: 1,
-                        }}
-                      >
-                        Checkpoints · {route.label}
-                      </Typography>
-                      <Stack direction="row" alignItems="center" spacing={0.75}>
-                        {heat && (
-                          <Chip
-                            size="small"
-                            label={`+${hour}h Forecast`}
-                            sx={{
-                              height: 18,
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                              bgcolor: 'rgba(245,184,46,0.15)',
-                              color: '#f5b82e',
-                              border: '1px solid rgba(245,184,46,0.3)',
-                            }}
-                          />
-                        )}
+                    <Box sx={{ mb: 1.2 }}>
+                      {/* Row 1: Route title & Spacing interval */}
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: heat ? 0.75 : 0 }}>
+                        <Typography
+                          variant="overline"
+                          sx={{
+                            color: '#4b6080',
+                            fontSize: '0.66rem',
+                            letterSpacing: '1.1px',
+                            fontWeight: 700,
+                            lineHeight: 1,
+                          }}
+                        >
+                          Checkpoints · {route.label}
+                        </Typography>
                         <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>
                           Every {res.interval_mi} mi{f.interval === 'auto' ? ' (Auto)' : ''}
                         </Typography>
                       </Stack>
-                    </Stack>
+
+                      {/* Row 2: Clean Amber Forecast Ribbon when heat is ON */}
+                      {heat && (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          sx={{
+                            bgcolor: 'rgba(245,184,46,0.08)',
+                            px: 1,
+                            py: 0.4,
+                            borderRadius: 1.5,
+                            border: '1px solid rgba(245,184,46,0.2)',
+                          }}
+                        >
+                          <Stack direction="row" alignItems="center" spacing={0.75}>
+                            <Chip
+                              size="small"
+                              label={`+${hour}h Forecast`}
+                              sx={{
+                                height: 18,
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                bgcolor: '#f5b82e',
+                                color: '#0b1120',
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ color: '#fde68a', fontSize: '0.68rem', fontWeight: 600 }}>
+                              {fmtTime(new Date(res.departure).getTime() + hour * 36e5)}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ color: '#d97706', fontSize: '0.64rem', fontWeight: 600 }}>
+                            Live Simulation
+                          </Typography>
+                        </Stack>
+                      )}
+                    </Box>
                     <CheckpointTable route={route} heat={heat} hour={slowHour} departure={res?.departure} />
                   </Box>
                 )}

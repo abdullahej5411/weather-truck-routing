@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
-import { COLORS, NAMES, ROUTE_COLORS, fmtDur, fmtTime } from "./lib";
+import { COLORS, NAMES, ROUTE_COLORS, fmtDur, fmtTime, assessWeather } from "./lib";
 
 function Fit({ routes }) {
   const map = useMap();
@@ -9,26 +9,29 @@ function Fit({ routes }) {
 }
 
 export default function MapView({ res, route, onSelect, heat, hour }) {
-  // Atmospheric weather corridor per checkpoint, colored by forecast risk `hour` hours after departure.
-  // Active selected route gets prominent high-opacity corridor; alternative routes stay subtle.
+  // Atmospheric weather corridor specifically along the active selected route (no cross-route overlap)
   const heatLayer = useMemo(() => {
-    if (!res || !heat) return null;
-    return res.routes.flatMap((r) => {
-      const isSelected = r.id === route?.id;
-      return r.checkpoints.map((p, i) => (
+    if (!res || !heat || !route) return null;
+    return route.checkpoints.map((p, i) => {
+      let lvl = (p.forecast && p.forecast[hour] !== undefined) ? p.forecast[hour] : p.level;
+      if (p.forecast_weather && p.forecast_weather[hour]) {
+        const assessed = assessWeather(p.forecast_weather[hour][0], p.forecast_weather[hour][1], p.forecast_weather[hour][2], route.weight || 40000);
+        lvl = assessed.lvl;
+      }
+      return (
         <Circle
-          key={`heat-${r.id}-${i}`}
+          key={`heat-${route.id}-${i}`}
           center={[p.lat, p.lon]}
-          radius={res.interval_mi * (isSelected ? 1350 : 900)}
+          radius={res.interval_mi * 950}
           interactive={false}
           pathOptions={{
             className: "heat",
             stroke: false,
-            fillColor: COLORS[p.forecast[hour]],
-            fillOpacity: isSelected ? 0.45 : 0.16,
+            fillColor: COLORS[lvl],
+            fillOpacity: 0.38,
           }}
         />
-      ));
+      );
     });
   }, [res, route, heat, hour]);
 
@@ -77,12 +80,33 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
         </Polyline>
       ))}
       {route?.checkpoints.map((p) => {
-        const currentLevel = (heat && p.forecast) ? p.forecast[hour] : p.level;
-        const currentWx = (heat && p.forecast_weather) ? p.forecast_weather[hour] : [p.wind, p.rain, p.snow];
-        const currentReasons = (heat && p.forecast_reasons) ? p.forecast_reasons[hour] : p.reasons;
-        const currentWind = currentWx ? currentWx[0] : p.wind;
-        const currentRain = currentWx ? currentWx[1] : p.rain;
-        const currentSnow = currentWx ? currentWx[2] : p.snow;
+        let currentLevel = p.level;
+        let currentWind = p.wind;
+        let currentRain = p.rain;
+        let currentSnow = p.snow;
+        let currentReasons = p.reasons || [];
+
+        if (heat && p.forecast_weather && p.forecast_weather[hour]) {
+          const [w_wind, w_rain, w_snow] = p.forecast_weather[hour];
+          const assessed = assessWeather(w_wind, w_rain, w_snow, route.weight || 40000);
+          currentLevel = assessed.lvl;
+          currentWind = w_wind;
+          currentRain = w_rain;
+          currentSnow = w_snow;
+          currentReasons = assessed.reasons;
+        } else if (heat && p.forecast && p.forecast[hour] !== undefined) {
+          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
+          currentLevel = assessed.lvl;
+          currentWind = p.wind;
+          currentRain = p.rain;
+          currentSnow = p.snow;
+          currentReasons = assessed.reasons;
+        } else {
+          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
+          currentLevel = assessed.lvl;
+          currentReasons = assessed.reasons;
+        }
+
         const forecastTime = res?.departure ? fmtTime(new Date(res.departure).getTime() + hour * 36e5) : null;
 
         return (

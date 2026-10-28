@@ -87,9 +87,9 @@ svg:focus {
   outline: none !important;
 }
 
-/* Heatmap circle softening into atmospheric weather radar ribbon */
+/* Heatmap corridor softening into sleek Doppler weather radar ribbon */
 .heat {
-  filter: blur(20px);
+  filter: blur(14px);
   pointer-events: none;
 }
 
