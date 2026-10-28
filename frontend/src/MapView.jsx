@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, Circle, Popup, Tooltip, useMap } from "react-leaflet";
-import { COLORS, ROUTE_COLORS, fmtTime } from "./lib";
+import { COLORS, ROUTE_COLORS, fmtDur, fmtTime } from "./lib";
 
 function Fit({ routes }) {
   const map = useMap();
@@ -9,10 +9,10 @@ function Fit({ routes }) {
 }
 
 export default function MapView({ res, route, onSelect, heat, hour }) {
-  // Blurred circles per checkpoint, coloured by the forecast risk `hour` hours after departure.
+  // Soft atmospheric weather corridor per checkpoint, colored by forecast risk `hour` hours after departure.
   const heatLayer = useMemo(() => !res || !heat ? null : res.routes.flatMap((r) => r.checkpoints.map((p, i) => (
-    <Circle key={`${r.id}-${i}`} center={[p.lat, p.lon]} radius={res.interval_mi * 1100} interactive={false}
-      pathOptions={{ className: "heat", stroke: false, fillColor: COLORS[p.forecast[hour]], fillOpacity: 0.6 }} />
+    <Circle key={`${r.id}-${i}`} center={[p.lat, p.lon]} radius={res.interval_mi * 1350} interactive={false}
+      pathOptions={{ className: "heat", stroke: false, fillColor: COLORS[p.forecast[hour]], fillOpacity: 0.22 }} />
   ))), [res, heat, hour]);
 
   return (
@@ -23,7 +23,40 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
       {res?.routes.map((r) => (
         <Polyline key={r.id} positions={r.geometry} eventHandlers={{ click: () => onSelect(r.id) }}
           pathOptions={{ color: ROUTE_COLORS[r.id], weight: r.id === route.id ? 7 : 4, opacity: r.id === route.id ? 0.95 : 0.5 }}>
-          <Tooltip sticky>{r.label}</Tooltip>
+          <Tooltip sticky className="google-route-tooltip">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '2px 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: ROUTE_COLORS[r.id],
+                  display: 'inline-block'
+                }} />
+                <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{r.label}</strong>
+                {r.recommended && (
+                  <span style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    color: '#1e40af',
+                    backgroundColor: '#dbeafe',
+                    padding: '1px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    Recommended
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#1e293b', fontWeight: 600 }}>
+                {fmtDur(r.duration_h)} • {Math.round(r.distance_mi)} mi ({Math.round(r.distance_mi * 1.60934)} km)
+              </div>
+              {r.summary?.avg_risk !== undefined && (
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  Avg weather risk: {r.summary.avg_risk} / 4
+                </div>
+              )}
+            </div>
+          </Tooltip>
         </Polyline>
       ))}
       {route?.checkpoints.map((p) => (

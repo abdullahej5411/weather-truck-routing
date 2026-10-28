@@ -67,8 +67,24 @@ input[type="number"] {
   height: 100%;
 }
 
-/* Heatmap circle softening */
-.heat { filter: blur(18px); }
+/* Heatmap circle softening into atmospheric weather radar ribbon */
+.heat {
+  filter: blur(28px);
+  pointer-events: none;
+}
 
 /* Tooltip cursor on checkpoint rows */
 tr[title], div[title] { cursor: help; }
+
+/* Google Maps-style route hover tooltip */
+.google-route-tooltip {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22) !important;
+  padding: 6px 10px !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+.google-route-tooltip:before {
+  border-top-color: #ffffff !important;
+}
