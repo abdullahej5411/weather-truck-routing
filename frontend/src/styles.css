@@ -11,12 +11,19 @@ html, body, #root {
 /* Custom Global Dark/Amber Scrollbars (Cross-Browser: Chrome, Edge, Firefox) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 184, 46, 0.35) transparent;
+  scrollbar-color: rgba(245, 184, 46, 0.3) transparent;
+}
+
+/* Hide native Windows scrollbar stepper buttons (up/down arrows) */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -24,13 +31,13 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 184, 46, 0.35);
-  border-radius: 10px;
+  background: rgba(245, 184, 46, 0.3);
+  border-radius: 9999px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 184, 46, 0.75);
+  background: rgba(245, 184, 46, 0.8);
 }
 
 ::-webkit-scrollbar-corner {

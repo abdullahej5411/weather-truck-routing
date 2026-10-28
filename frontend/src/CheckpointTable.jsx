@@ -11,7 +11,12 @@ export default function CheckpointTable({ route }) {
   const [openModal, setOpenModal] = useState(false);
   const [riskFilter, setRiskFilter] = useState('ALL');
 
+  const [showAllInSidebar, setShowAllInSidebar] = useState(false);
+
   if (!route || !route.checkpoints) return null;
+
+  const displayedCheckpoints = showAllInSidebar ? route.checkpoints : route.checkpoints.slice(0, 6);
+  const hasMore = route.checkpoints.length > 6;
 
   const filteredCheckpoints = riskFilter === 'ALL'
     ? route.checkpoints
@@ -86,21 +91,10 @@ export default function CheckpointTable({ route }) {
         </Button>
       </Stack>
 
-      {/* ─── SIDEBAR VIEW: CARDS (Clean, zero horizontal scroll) ─── */}
+      {/* ─── SIDEBAR VIEW: CARDS (Clean natural flow, ZERO double scrollbar) ─── */}
       {view === 'cards' ? (
-        <Box
-          sx={{
-            maxHeight: 290,
-            overflowY: 'auto',
-            pr: 0.5,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
-          }}
-        >
-          {route.checkpoints.map((p) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {displayedCheckpoints.map((p) => (
             <Box
               key={p.mile}
               title={p.reasons.join('\n')}
@@ -153,53 +147,104 @@ export default function CheckpointTable({ route }) {
               </Stack>
             </Box>
           ))}
+
+          {hasMore && (
+            <Button
+              fullWidth
+              size="small"
+              onClick={() => setShowAllInSidebar(!showAllInSidebar)}
+              sx={{
+                mt: 0.5,
+                py: 0.7,
+                borderRadius: 2,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: '#f5b82e',
+                bgcolor: 'rgba(245,184,46,0.06)',
+                border: '1px solid rgba(245,184,46,0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(245,184,46,0.15)',
+                  borderColor: 'rgba(245,184,46,0.4)',
+                },
+              }}
+            >
+              {showAllInSidebar
+                ? 'Collapse checkpoints'
+                : `Show all ${route.checkpoints.length} in sidebar (+${route.checkpoints.length - 6} more)`}
+            </Button>
+          )}
         </Box>
       ) : (
         /* ─── SIDEBAR VIEW: COMPACT TABLE ─── */
-        <TableContainer
-          sx={{
-            maxHeight: 280,
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.06)',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
-          }}
-        >
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                {['Mile', 'ETA', 'Wind', 'Rain', 'Snow', 'Risk'].map((h) => (
-                  <TableCell key={h} sx={{ px: 0.75, py: 0.75 }}>{h}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {route.checkpoints.map((p) => (
-                <TableRow
-                  key={p.mile}
-                  hover
-                  title={p.reasons.join('\n')}
-                  sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.04) !important' } }}
-                >
-                  <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{Math.round(p.mile)}</TableCell>
-                  <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', px: 0.75, py: 0.7, fontSize: '0.72rem' }}>
-                    {fmtTime(p.eta)}
-                  </TableCell>
-                  <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.wind}</TableCell>
-                  <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.rain}</TableCell>
-                  <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.snow}</TableCell>
-                  <TableCell sx={{ px: 0.75, py: 0.7 }}>
-                    <Chip
-                      size="small"
-                      label={p.level_name}
-                      sx={{ bgcolor: COLORS[p.level], color: '#fff', fontWeight: 600, fontSize: '0.65rem', height: 18 }}
-                    />
-                  </TableCell>
+        <Box>
+          <TableContainer
+            sx={{
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {['Mile', 'ETA', 'Wind', 'Rain', 'Snow', 'Risk'].map((h) => (
+                    <TableCell key={h} sx={{ px: 0.75, py: 0.75 }}>{h}</TableCell>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {displayedCheckpoints.map((p) => (
+                  <TableRow
+                    key={p.mile}
+                    hover
+                    title={p.reasons.join('\n')}
+                    sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.04) !important' } }}
+                  >
+                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{Math.round(p.mile)}</TableCell>
+                    <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', px: 0.75, py: 0.7, fontSize: '0.72rem' }}>
+                      {fmtTime(p.eta)}
+                    </TableCell>
+                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.wind}</TableCell>
+                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.rain}</TableCell>
+                    <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{p.snow}</TableCell>
+                    <TableCell sx={{ px: 0.75, py: 0.7 }}>
+                      <Chip
+                        size="small"
+                        label={p.level_name}
+                        sx={{ bgcolor: COLORS[p.level], color: '#fff', fontWeight: 600, fontSize: '0.65rem', height: 18 }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {hasMore && (
+            <Button
+              fullWidth
+              size="small"
+              onClick={() => setShowAllInSidebar(!showAllInSidebar)}
+              sx={{
+                mt: 1,
+                py: 0.7,
+                borderRadius: 2,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: '#f5b82e',
+                bgcolor: 'rgba(245,184,46,0.06)',
+                border: '1px solid rgba(245,184,46,0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(245,184,46,0.15)',
+                  borderColor: 'rgba(245,184,46,0.4)',
+                },
+              }}
+            >
+              {showAllInSidebar
+                ? 'Collapse checkpoints'
+                : `Show all ${route.checkpoints.length} in sidebar (+${route.checkpoints.length - 6} more)`}
+            </Button>
+          )}
+        </Box>
       )}
 
       {/* ─── EXPANDED FULL TABLE MODAL ─── */}
