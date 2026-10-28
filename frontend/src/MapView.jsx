@@ -37,7 +37,12 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
 
   return (
     <MapContainer center={[39, -98]} zoom={4}>
-      <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={19}
+      />
       {res && <Fit routes={res.routes} />}
       {heatLayer}
       {res?.routes.map((r) => (
