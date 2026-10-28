@@ -54,6 +54,15 @@ const theme = createTheme({
           '&.Mui-focused fieldset': { borderColor: '#3b82f6' },
           backgroundColor: 'rgba(255,255,255,0.03)',
         },
+        input: {
+          '&[type=number]': {
+            MozAppearance: 'textfield',
+          },
+          '&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button': {
+            WebkitAppearance: 'none',
+            margin: 0,
+          },
+        },
       },
     },
     MuiInputLabel: {
