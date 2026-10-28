@@ -210,14 +210,17 @@ export default function App() {
             bgcolor: '#0b1120',
             borderRight: { md: '1px solid rgba(255,255,255,0.07)' },
             borderBottom: { xs: '1px solid rgba(255,255,255,0.07)', md: 'none' },
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
             /* Fancy amber scrollbar */
             '&::-webkit-scrollbar': { width: '5px' },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': {
               background: 'rgba(245,184,46,0.35)',
               borderRadius: '10px',
+              transition: 'background 0.2s ease',
             },
-            '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(245,184,46,0.65)' },
+            '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(245,184,46,0.75)' },
           }}
         >
           {/* Branded header */}
@@ -292,35 +295,57 @@ export default function App() {
               </Stack>
 
               {/* Load weight quick presets */}
-              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: -0.5 }}>
-                <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.68rem', mr: 0.25 }}>
-                  Presets:
-                </Typography>
-                {[
-                  { label: 'Empty (15k)', val: 15000 },
-                  { label: 'Half (35k)', val: 35000 },
-                  { label: 'Standard (40k)', val: 40000 },
-                  { label: 'Max (80k)', val: 80000 },
-                ].map((p) => (
-                  <Chip
-                    key={p.val}
-                    label={p.label}
-                    size="small"
-                    clickable
-                    onClick={() => setF((prev) => ({ ...prev, weight: p.val }))}
-                    variant={+f.weight === p.val ? 'filled' : 'outlined'}
-                    sx={{
-                      fontSize: '0.65rem',
-                      height: 20,
-                      cursor: 'pointer',
-                      bgcolor: +f.weight === p.val ? 'rgba(245,184,46,0.2)' : 'transparent',
-                      borderColor: +f.weight === p.val ? '#f5b82e' : 'rgba(255,255,255,0.12)',
-                      color: +f.weight === p.val ? '#f5b82e' : '#7c8db5',
-                      '&:hover': { bgcolor: 'rgba(245,184,46,0.15)', color: '#f5b82e' },
-                    }}
-                  />
-                ))}
-              </Stack>
+              <Box sx={{ mt: -0.5 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.6 }}>
+                  <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.68rem', fontWeight: 600 }}>
+                    Load presets
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#4b6080', fontSize: '0.65rem' }}>
+                    {+f.weight ? `${(+f.weight).toLocaleString()} lb` : ''}
+                  </Typography>
+                </Stack>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '6px',
+                  }}
+                >
+                  {[
+                    { label: '15k Empty', val: 15000 },
+                    { label: '35k Half', val: 35000 },
+                    { label: '40k Std', val: 40000 },
+                    { label: '80k Max', val: 80000 },
+                  ].map((p) => (
+                    <Button
+                      key={p.val}
+                      size="small"
+                      type="button"
+                      onClick={() => setF((prev) => ({ ...prev, weight: p.val }))}
+                      sx={{
+                        py: 0.5,
+                        px: 0.25,
+                        fontSize: '0.66rem',
+                        lineHeight: 1.15,
+                        whiteSpace: 'nowrap',
+                        borderRadius: 1.5,
+                        border: '1px solid',
+                        borderColor: +f.weight === p.val ? '#f5b82e' : 'rgba(255,255,255,0.08)',
+                        bgcolor: +f.weight === p.val ? 'rgba(245,184,46,0.18)' : 'rgba(255,255,255,0.02)',
+                        color: +f.weight === p.val ? '#f5b82e' : '#7c8db5',
+                        fontWeight: +f.weight === p.val ? 700 : 500,
+                        '&:hover': {
+                          bgcolor: 'rgba(245,184,46,0.15)',
+                          borderColor: 'rgba(245,184,46,0.5)',
+                          color: '#f5b82e',
+                        },
+                      }}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
+                </Box>
+              </Box>
 
               <Button
                 type="submit" variant="contained" color="secondary"
@@ -338,12 +363,30 @@ export default function App() {
 
             {res && (
               <Box sx={{ mt: 3 }}>
-                <Typography
-                  variant="overline"
-                  sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px', display: 'block', mb: 1 }}
-                >
-                  Route Analysis
-                </Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px' }}
+                  >
+                    Route Analysis
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={
+                      f.interval === 'auto'
+                        ? `Auto Spacing: ${res.interval_mi} mi`
+                        : `Spacing: ${res.interval_mi} mi`
+                    }
+                    sx={{
+                      height: 20,
+                      fontSize: '0.66rem',
+                      fontWeight: 600,
+                      bgcolor: f.interval === 'auto' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                      color: f.interval === 'auto' ? '#93c5fd' : '#7c8db5',
+                      border: f.interval === 'auto' ? '1px solid rgba(59,130,246,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  />
+                </Stack>
                 <Stack spacing={1.5}>
                   {res.notice && <Alert severity="warning" sx={{ borderRadius: 2 }}>{res.notice}</Alert>}
                   <Alert severity="success" icon={false} sx={{ borderRadius: 2, fontSize: '0.82rem', lineHeight: 1.5 }}>
@@ -356,12 +399,17 @@ export default function App() {
 
                 {route && (
                   <Box sx={{ mt: 2.5 }}>
-                    <Typography
-                      variant="overline"
-                      sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px', display: 'block', mb: 1 }}
-                    >
-                      Checkpoints — {route.label}
-                    </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Typography
+                        variant="overline"
+                        sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px' }}
+                      >
+                        Checkpoints — {route.label}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.7rem' }}>
+                        Every {res.interval_mi} mi{f.interval === 'auto' ? ' (Auto)' : ''}
+                      </Typography>
+                    </Stack>
                     <CheckpointTable route={route} />
                   </Box>
                 )}

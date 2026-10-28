@@ -8,15 +8,15 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Global Dark/Amber Scrollbars */
+/* Custom Global Dark/Amber Scrollbars (Cross-Browser: Chrome, Edge, Firefox) */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(245, 184, 46, 0.35) transparent;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -25,11 +25,12 @@ html, body, #root {
 
 ::-webkit-scrollbar-thumb {
   background: rgba(245, 184, 46, 0.35);
-  border-radius: 8px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 184, 46, 0.65);
+  background: rgba(245, 184, 46, 0.75);
 }
 
 ::-webkit-scrollbar-corner {

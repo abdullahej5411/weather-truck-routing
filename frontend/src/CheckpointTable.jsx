@@ -96,6 +96,8 @@ export default function CheckpointTable({ route }) {
             display: 'flex',
             flexDirection: 'column',
             gap: 1,
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
           }}
         >
           {route.checkpoints.map((p) => (
@@ -159,6 +161,8 @@ export default function CheckpointTable({ route }) {
             maxHeight: 280,
             borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.06)',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(245,184,46,0.35) transparent',
           }}
         >
           <Table size="small" stickyHeader>
