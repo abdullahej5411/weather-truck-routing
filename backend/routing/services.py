@@ -2,6 +2,7 @@
 import datetime as dt
 import math
 import time
+import urllib.parse
 
 import requests
 from django.core.cache import cache
@@ -21,7 +22,7 @@ def hav(a, b):
 
 def geocode(q):
     global _last_geocode
-    key = "geo:" + q.strip().lower()
+    key = "geo:" + urllib.parse.quote(q.strip().lower())
     hit = cache.get(key)
     if hit:
         return hit
@@ -172,7 +173,7 @@ def analyse(i, r, wx, depart, weight):
     return {"id": i, "label": f"Route {chr(65 + i)}", "distance_mi": round(r["miles"], 1),
             "duration_h": round(r["hours"], 2), "arrival": (depart + dt.timedelta(hours=r["hours"])).isoformat(),
             "geometry": [[round(a, 5), round(b, 5)] for a, b in geom], "checkpoints": pts,
-            "summary": summary, "hours": r["hours"]}
+            "summary": summary, "hours": r["hours"], "weight_lb": weight}
 
 
 def rank_key(r):
@@ -211,5 +212,5 @@ def plan_trip(origin, destination, depart, weight, step="25"):
                        f"vs {get(ranked[1]):.1f} {unit} on the next-best route.")
                 break
     return {"origin": o, "destination": d, "departure": depart.isoformat(), "interval_mi": step,
-            "routes": routes, "recommended_id": best["id"], "explanation": why,
+            "weight_lb": weight, "routes": routes, "recommended_id": best["id"], "explanation": why,
             "notice": None if len(routes) == 3 else f"The routing API returned only {len(routes)} distinct route(s) for this trip."}

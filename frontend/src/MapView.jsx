@@ -15,14 +15,14 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
     return route.checkpoints.map((p, i) => {
       let lvl = (p.forecast && p.forecast[hour] !== undefined) ? p.forecast[hour] : p.level;
       if (p.forecast_weather && p.forecast_weather[hour]) {
-        const assessed = assessWeather(p.forecast_weather[hour][0], p.forecast_weather[hour][1], p.forecast_weather[hour][2], route.weight || 40000);
+        const assessed = assessWeather(p.forecast_weather[hour][0], p.forecast_weather[hour][1], p.forecast_weather[hour][2], route.weight_lb || route.weight || 40000);
         lvl = assessed.lvl;
       }
       return (
         <Circle
           key={`heat-${route.id}-${i}`}
           center={[p.lat, p.lon]}
-          radius={res.interval_mi * 950}
+          radius={(res?.interval_mi || 25) * 950}
           interactive={false}
           pathOptions={{
             className: "heat",
@@ -88,23 +88,23 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
 
         if (heat && p.forecast_weather && p.forecast_weather[hour]) {
           const [w_wind, w_rain, w_snow] = p.forecast_weather[hour];
-          const assessed = assessWeather(w_wind, w_rain, w_snow, route.weight || 40000);
+          const assessed = assessWeather(w_wind, w_rain, w_snow, route.weight_lb || route.weight || 40000);
           currentLevel = assessed.lvl;
           currentWind = w_wind;
           currentRain = w_rain;
           currentSnow = w_snow;
           currentReasons = assessed.reasons;
         } else if (heat && p.forecast && p.forecast[hour] !== undefined) {
-          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
+          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight_lb || route.weight || 40000);
           currentLevel = assessed.lvl;
           currentWind = p.wind;
           currentRain = p.rain;
           currentSnow = p.snow;
           currentReasons = assessed.reasons;
         } else {
-          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
-          currentLevel = assessed.lvl;
-          currentReasons = assessed.reasons;
+          const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight_lb || route.weight || 40000);
+          currentLevel = p.level !== undefined ? p.level : assessed.lvl;
+          currentReasons = (p.reasons && p.reasons.length) ? p.reasons : assessed.reasons;
         }
 
         const forecastTime = res?.departure ? fmtTime(new Date(res.departure).getTime() + hour * 36e5) : null;

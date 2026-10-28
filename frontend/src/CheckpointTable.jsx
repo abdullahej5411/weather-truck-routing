@@ -16,10 +16,11 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
   const forecastTime = departure ? fmtTime(new Date(departure).getTime() + hour * 36e5) : null;
 
   const getPointData = (p) => {
+    const truckWeight = route.weight_lb || route.weight || 40000;
     // 1. If heatmap active and hourly forecast weather is available:
     if (heat && p.forecast_weather && p.forecast_weather[hour]) {
       const [w_wind, w_rain, w_snow] = p.forecast_weather[hour];
-      const assessed = assessWeather(w_wind, w_rain, w_snow, route.weight || 40000);
+      const assessed = assessWeather(w_wind, w_rain, w_snow, truckWeight);
       return {
         lvl: assessed.lvl,
         lvlName: assessed.lvlName,
@@ -32,7 +33,7 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
     }
     // 2. If heatmap active and only forecast level is present, assess p.wind/p.rain/p.snow:
     if (heat && p.forecast && p.forecast[hour] !== undefined) {
-      const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
+      const assessed = assessWeather(p.wind, p.rain, p.snow, truckWeight);
       return {
         lvl: assessed.lvl,
         lvlName: assessed.lvlName,
@@ -44,7 +45,7 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
       };
     }
     // 3. Standard ETA weather:
-    const assessed = assessWeather(p.wind, p.rain, p.snow, route.weight || 40000);
+    const assessed = assessWeather(p.wind, p.rain, p.snow, truckWeight);
     return {
       lvl: p.level !== undefined ? p.level : assessed.lvl,
       lvlName: p.level_name || assessed.lvlName,

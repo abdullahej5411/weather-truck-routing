@@ -38,8 +38,8 @@ export default function RouteCard({ r, selected, onSelect }) {
                 }}
               />
             )}
-            {r.summary.no_travel_mi >= 1 && (
-              <Chip size="small" color="error" label="No Travel miles" sx={{ fontSize: '0.67rem' }} />
+            {r.summary.no_travel_mi > 0 && (
+              <Chip size="small" color="error" label={`${r.summary.no_travel_mi} mi No Travel`} sx={{ fontSize: '0.67rem', fontWeight: 700 }} />
             )}
           </Stack>
           <Typography variant="body2" sx={{ color: '#7c8db5', mb: 0.3 }}>
