@@ -408,14 +408,21 @@ export default function App() {
 
                 {route && (
                   <Box sx={{ mt: 2.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <Typography
-                          variant="overline"
-                          sx={{ color: '#4b6080', fontSize: '0.63rem', letterSpacing: '1.2px' }}
-                        >
-                          Checkpoints — {route.label}
-                        </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.2 }}>
+                      <Typography
+                        variant="overline"
+                        sx={{
+                          color: '#4b6080',
+                          fontSize: '0.66rem',
+                          letterSpacing: '1.1px',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1,
+                        }}
+                      >
+                        Checkpoints · {route.label}
+                      </Typography>
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
                         {heat && (
                           <Chip
                             size="small"
@@ -430,10 +437,10 @@ export default function App() {
                             }}
                           />
                         )}
+                        <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>
+                          Every {res.interval_mi} mi{f.interval === 'auto' ? ' (Auto)' : ''}
+                        </Typography>
                       </Stack>
-                      <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.7rem' }}>
-                        Every {res.interval_mi} mi{f.interval === 'auto' ? ' (Auto)' : ''}
-                      </Typography>
                     </Stack>
                     <CheckpointTable route={route} heat={heat} hour={slowHour} departure={res?.departure} />
                   </Box>

@@ -10,10 +10,27 @@ function Fit({ routes }) {
 
 export default function MapView({ res, route, onSelect, heat, hour }) {
   // Atmospheric weather corridor per checkpoint, colored by forecast risk `hour` hours after departure.
-  const heatLayer = useMemo(() => !res || !heat ? null : res.routes.flatMap((r) => r.checkpoints.map((p, i) => (
-    <Circle key={`${r.id}-${i}`} center={[p.lat, p.lon]} radius={res.interval_mi * 1300} interactive={false}
-      pathOptions={{ className: "heat", stroke: false, fillColor: COLORS[p.forecast[hour]], fillOpacity: 0.40 }} />
-  ))), [res, heat, hour]);
+  // Active selected route gets prominent high-opacity corridor; alternative routes stay subtle.
+  const heatLayer = useMemo(() => {
+    if (!res || !heat) return null;
+    return res.routes.flatMap((r) => {
+      const isSelected = r.id === route?.id;
+      return r.checkpoints.map((p, i) => (
+        <Circle
+          key={`heat-${r.id}-${i}`}
+          center={[p.lat, p.lon]}
+          radius={res.interval_mi * (isSelected ? 1350 : 900)}
+          interactive={false}
+          pathOptions={{
+            className: "heat",
+            stroke: false,
+            fillColor: COLORS[p.forecast[hour]],
+            fillOpacity: isSelected ? 0.45 : 0.16,
+          }}
+        />
+      ));
+    });
+  }, [res, route, heat, hour]);
 
   return (
     <MapContainer center={[39, -98]} zoom={4}>
@@ -62,6 +79,7 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
       {route?.checkpoints.map((p) => {
         const currentLevel = (heat && p.forecast) ? p.forecast[hour] : p.level;
         const currentWx = (heat && p.forecast_weather) ? p.forecast_weather[hour] : [p.wind, p.rain, p.snow];
+        const currentReasons = (heat && p.forecast_reasons) ? p.forecast_reasons[hour] : p.reasons;
         const currentWind = currentWx ? currentWx[0] : p.wind;
         const currentRain = currentWx ? currentWx[1] : p.rain;
         const currentSnow = currentWx ? currentWx[2] : p.snow;
@@ -102,6 +120,11 @@ export default function MapView({ res, route, onSelect, heat, hour }) {
                     <div style={{ fontSize: '0.78rem', color: '#334155' }}>
                       Wind <b>{currentWind}</b> mph • Rain <b>{currentRain}</b> in/h • Snow <b>{currentSnow}</b> in/h
                     </div>
+                    {currentReasons?.length > 0 && (
+                      <div style={{ fontSize: '0.72rem', color: '#b91c1c', marginTop: '3px', fontWeight: 600 }}>
+                        {currentReasons.join(', ')}
+                      </div>
+                    )}
                     <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px', borderTop: '1px solid #e2e8f0', paddingTop: '3px' }}>
                       Trip ETA: {fmtTime(p.eta)} ({p.level_name})
                     </div>

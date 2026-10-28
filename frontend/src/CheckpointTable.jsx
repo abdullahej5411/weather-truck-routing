@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box, Button, Chip, Dialog, DialogContent, DialogTitle,
   IconButton, Stack, Table, TableBody, TableCell, TableContainer,
@@ -10,7 +10,6 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
   const [view, setView] = useState('cards'); // 'cards' | 'table'
   const [openModal, setOpenModal] = useState(false);
   const [riskFilter, setRiskFilter] = useState('ALL');
-  const [showAllInSidebar, setShowAllInSidebar] = useState(false);
 
   if (!route || !route.checkpoints) return null;
 
@@ -19,6 +18,7 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
   const getPointData = (p) => {
     const lvl = (heat && p.forecast) ? p.forecast[hour] : p.level;
     const wx = (heat && p.forecast_weather) ? p.forecast_weather[hour] : [p.wind, p.rain, p.snow];
+    const reasons = (heat && p.forecast_reasons) ? p.forecast_reasons[hour] : p.reasons;
     return {
       lvl,
       lvlName: NAMES[lvl],
@@ -26,11 +26,21 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
       wind: wx ? wx[0] : p.wind,
       rain: wx ? wx[1] : p.rain,
       snow: wx ? wx[2] : p.snow,
+      reasons: reasons || [],
     };
   };
 
-  const displayedCheckpoints = showAllInSidebar ? route.checkpoints : route.checkpoints.slice(0, 6);
-  const hasMore = route.checkpoints.length > 6;
+  const categoryCounts = useMemo(() => {
+    const counts = { ALL: route.checkpoints.length };
+    NAMES.forEach((n) => { counts[n] = 0; });
+    route.checkpoints.forEach((p) => {
+      const { lvlName } = getPointData(p);
+      if (counts[lvlName] !== undefined) counts[lvlName]++;
+    });
+    return counts;
+  }, [route, heat, hour]);
+
+  const displayedCheckpoints = route.checkpoints;
 
   const filteredCheckpoints = riskFilter === 'ALL'
     ? route.checkpoints
@@ -108,7 +118,7 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
         </Button>
       </Stack>
 
-      {/* ─── SIDEBAR VIEW: CARDS (Clean natural flow, ZERO double scrollbar) ─── */}
+      {/* ─── SIDEBAR VIEW: CARDS (Clean flow, full route visibility) ─── */}
       {view === 'cards' ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {displayedCheckpoints.map((p) => {
@@ -116,7 +126,7 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
             return (
               <Box
                 key={p.mile}
-                title={p.reasons?.join('\n') || ''}
+                title={d.reasons.length ? d.reasons.join('\n') : p.reasons?.join('\n') || 'Low weather risk'}
                 sx={{
                   p: 1.2,
                   borderRadius: 2,
@@ -135,20 +145,9 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
                     <Typography variant="body2" fontWeight={700} sx={{ color: '#f0f4ff', lineHeight: 1.2, fontSize: '0.82rem' }}>
                       Mile {Math.round(p.mile)}
                     </Typography>
-                    {heat ? (
-                      <>
-                        <Typography variant="caption" sx={{ color: '#60a5fa', fontSize: '0.71rem', display: 'block', fontWeight: 600 }}>
-                          +{hour}h ({forecastTime})
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#4b6080', fontSize: '0.67rem' }}>
-                          ETA {fmtTime(p.eta)}
-                        </Typography>
-                      </>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
-                        ETA {fmtTime(p.eta)}
-                      </Typography>
-                    )}
+                    <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.72rem' }}>
+                      ETA {fmtTime(p.eta)}
+                    </Typography>
                   </Box>
                   <Chip
                     size="small"
@@ -175,51 +174,45 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
                     Snow: <strong style={{ color: '#f0f4ff' }}>{d.snow}</strong> in/h
                   </Typography>
                 </Stack>
+
+                {d.reasons.length > 0 && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: d.lvl >= 2 ? '#fca5a5' : '#fde68a',
+                      fontSize: '0.7rem',
+                      display: 'block',
+                      mt: 0.5,
+                      fontWeight: 600
+                    }}
+                  >
+                    {d.reasons.join(', ')}
+                  </Typography>
+                )}
               </Box>
             );
           })}
-
-          {hasMore && (
-            <Button
-              fullWidth
-              size="small"
-              onClick={() => setShowAllInSidebar(!showAllInSidebar)}
-              sx={{
-                mt: 0.5,
-                py: 0.7,
-                borderRadius: 2,
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                color: '#f5b82e',
-                bgcolor: 'rgba(245,184,46,0.06)',
-                border: '1px solid rgba(245,184,46,0.2)',
-                '&:hover': {
-                  bgcolor: 'rgba(245,184,46,0.15)',
-                  borderColor: 'rgba(245,184,46,0.4)',
-                },
-              }}
-            >
-              {showAllInSidebar
-                ? 'Collapse checkpoints'
-                : `Show all ${route.checkpoints.length} in sidebar (+${route.checkpoints.length - 6} more)`}
-            </Button>
-          )}
         </Box>
       ) : (
-        /* ─── SIDEBAR VIEW: COMPACT TABLE ─── */
+        /* ─── SIDEBAR VIEW: COMPACT TABLE (100% width, zero horizontal scrollbar) ─── */
         <Box>
           <TableContainer
             sx={{
               borderRadius: '8px',
               border: '1px solid rgba(255,255,255,0.06)',
+              overflowX: 'hidden',
+              width: '100%',
             }}
           >
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
                 <TableRow>
-                  {['Mile', heat ? `+${hour}h Time` : 'ETA', 'Wind', 'Rain', 'Snow', 'Risk'].map((h) => (
-                    <TableCell key={h} sx={{ px: 0.75, py: 0.75 }}>{h}</TableCell>
-                  ))}
+                  <TableCell sx={{ width: '15%', px: 0.5, py: 0.75, fontSize: '0.68rem' }}>Mile</TableCell>
+                  <TableCell sx={{ width: '27%', px: 0.5, py: 0.75, fontSize: '0.68rem' }}>ETA</TableCell>
+                  <TableCell sx={{ width: '14%', px: 0.5, py: 0.75, fontSize: '0.68rem', textAlign: 'right' }}>Wind</TableCell>
+                  <TableCell sx={{ width: '14%', px: 0.5, py: 0.75, fontSize: '0.68rem', textAlign: 'right' }}>Rain</TableCell>
+                  <TableCell sx={{ width: '14%', px: 0.5, py: 0.75, fontSize: '0.68rem', textAlign: 'right' }}>Snow</TableCell>
+                  <TableCell sx={{ width: '16%', px: 0.5, py: 0.75, fontSize: '0.68rem', textAlign: 'right' }}>Risk</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -229,21 +222,38 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
                     <TableRow
                       key={p.mile}
                       hover
-                      title={p.reasons?.join('\n') || ''}
+                      title={d.reasons.length ? d.reasons.join('\n') : p.reasons?.join('\n') || 'Low weather risk'}
                       sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.04) !important' } }}
                     >
-                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{Math.round(p.mile)}</TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', px: 0.75, py: 0.7, fontSize: '0.72rem' }}>
-                        {heat ? `+${hour}h (${forecastTime})` : fmtTime(p.eta)}
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.5, py: 0.7, fontSize: '0.72rem', fontWeight: 600 }}>
+                        {Math.round(p.mile)}
                       </TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.wind}</TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.rain}</TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', px: 0.75, py: 0.7 }}>{d.snow}</TableCell>
-                      <TableCell sx={{ px: 0.75, py: 0.7 }}>
+                      <TableCell sx={{ color: '#94a3b8', px: 0.5, py: 0.7, fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {fmtTime(p.eta)}
+                      </TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.5, py: 0.7, fontSize: '0.72rem', textAlign: 'right' }}>
+                        {d.wind}
+                      </TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.5, py: 0.7, fontSize: '0.72rem', textAlign: 'right' }}>
+                        {d.rain}
+                      </TableCell>
+                      <TableCell sx={{ color: '#f0f4ff', px: 0.5, py: 0.7, fontSize: '0.72rem', textAlign: 'right' }}>
+                        {d.snow}
+                      </TableCell>
+                      <TableCell sx={{ px: 0.5, py: 0.7, textAlign: 'right' }}>
                         <Chip
                           size="small"
                           label={d.lvlName}
-                          sx={{ bgcolor: d.color, color: '#fff', fontWeight: 600, fontSize: '0.65rem', height: 18 }}
+                          sx={{
+                            bgcolor: d.color,
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: '0.62rem',
+                            height: 18,
+                            minWidth: '42px',
+                            px: 0.25,
+                            borderRadius: '4px',
+                          }}
                         />
                       </TableCell>
                     </TableRow>
@@ -252,32 +262,6 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
               </TableBody>
             </Table>
           </TableContainer>
-
-          {hasMore && (
-            <Button
-              fullWidth
-              size="small"
-              onClick={() => setShowAllInSidebar(!showAllInSidebar)}
-              sx={{
-                mt: 1,
-                py: 0.7,
-                borderRadius: 2,
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                color: '#f5b82e',
-                bgcolor: 'rgba(245,184,46,0.06)',
-                border: '1px solid rgba(245,184,46,0.2)',
-                '&:hover': {
-                  bgcolor: 'rgba(245,184,46,0.15)',
-                  borderColor: 'rgba(245,184,46,0.4)',
-                },
-              }}
-            >
-              {showAllInSidebar
-                ? 'Collapse checkpoints'
-                : `Show all ${route.checkpoints.length} in sidebar (+${route.checkpoints.length - 6} more)`}
-            </Button>
-          )}
         </Box>
       )}
 
@@ -335,29 +319,32 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
             </IconButton>
           </Stack>
 
-          {/* Filter Pills */}
+          {/* Filter Pills with Counts */}
           <Stack direction="row" spacing={0.75} sx={{ mt: 1.5 }} flexWrap="wrap">
             <Typography variant="caption" sx={{ color: '#7c8db5', alignSelf: 'center', mr: 0.5, fontSize: '0.72rem' }}>
               Filter by Risk:
             </Typography>
-            {['ALL', ...NAMES].map((name) => (
-              <Chip
-                key={name}
-                size="small"
-                label={name}
-                clickable
-                onClick={() => setRiskFilter(name)}
-                variant={riskFilter === name ? 'filled' : 'outlined'}
-                sx={{
-                  fontSize: '0.68rem',
-                  height: 22,
-                  bgcolor: riskFilter === name ? 'rgba(59,130,246,0.3)' : 'transparent',
-                  borderColor: riskFilter === name ? '#3b82f6' : 'rgba(255,255,255,0.12)',
-                  color: riskFilter === name ? '#93c5fd' : '#7c8db5',
-                  '&:hover': { bgcolor: 'rgba(59,130,246,0.2)' },
-                }}
-              />
-            ))}
+            {['ALL', ...NAMES].map((name) => {
+              const count = categoryCounts[name] || 0;
+              return (
+                <Chip
+                  key={name}
+                  size="small"
+                  label={`${name} (${count})`}
+                  clickable
+                  onClick={() => setRiskFilter(name)}
+                  variant={riskFilter === name ? 'filled' : 'outlined'}
+                  sx={{
+                    fontSize: '0.68rem',
+                    height: 22,
+                    bgcolor: riskFilter === name ? 'rgba(59,130,246,0.3)' : 'transparent',
+                    borderColor: riskFilter === name ? '#3b82f6' : 'rgba(255,255,255,0.12)',
+                    color: riskFilter === name ? '#93c5fd' : '#7c8db5',
+                    '&:hover': { bgcolor: 'rgba(59,130,246,0.2)' },
+                  }}
+                />
+              );
+            })}
           </Stack>
         </DialogTitle>
 
@@ -368,63 +355,69 @@ export default function CheckpointTable({ route, heat = false, hour = 0, departu
                 <TableRow>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Mile</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Arrival (ETA)</TableCell>
-                  {heat && <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>+{hour}h Time</TableCell>}
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Wind (mph)</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Rain (in/hr)</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Snow (in/hr)</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>
                     {heat ? `+${hour}h Risk` : 'Risk Level'}
                   </TableCell>
+                  <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>Real-time Factors & Reasons</TableCell>
                   <TableCell sx={{ bgcolor: '#0f172a', py: 1.2, px: 2 }}>ETA Risk</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredCheckpoints.map((p) => {
-                  const d = getPointData(p);
-                  return (
-                    <TableRow
-                      key={p.mile}
-                      hover
-                      sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.03) !important' } }}
-                    >
-                      <TableCell sx={{ color: '#f0f4ff', fontWeight: 600, py: 1, px: 2 }}>
-                        {Math.round(p.mile)}
-                      </TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', py: 1, px: 2 }}>
-                        {fmtTime(p.eta)}
-                      </TableCell>
-                      {heat && (
-                        <TableCell sx={{ color: '#60a5fa', whiteSpace: 'nowrap', py: 1, px: 2, fontSize: '0.75rem' }}>
-                          +{hour}h ({forecastTime})
+                {filteredCheckpoints.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#7c8db5' }}>
+                      No checkpoints matching risk level "{riskFilter}" at this forecast hour.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCheckpoints.map((p) => {
+                    const d = getPointData(p);
+                    return (
+                      <TableRow
+                        key={p.mile}
+                        hover
+                        sx={{ '&.MuiTableRow-hover:hover': { bgcolor: 'rgba(255,255,255,0.03) !important' } }}
+                      >
+                        <TableCell sx={{ color: '#f0f4ff', fontWeight: 600, py: 1, px: 2 }}>
+                          {Math.round(p.mile)}
                         </TableCell>
-                      )}
-                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.wind} mph</TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.rain} in/hr</TableCell>
-                      <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.snow} in/hr</TableCell>
-                      <TableCell sx={{ py: 1, px: 2 }}>
-                        <Chip
-                          size="small"
-                          label={d.lvlName}
-                          sx={{ bgcolor: d.color, color: '#fff', fontWeight: 600, fontSize: '0.7rem', height: 20 }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ py: 1, px: 2 }}>
-                        <Chip
-                          size="small"
-                          label={p.level_name}
-                          variant="outlined"
-                          sx={{
-                            borderColor: COLORS[p.level],
-                            color: COLORS[p.level],
-                            fontWeight: 600,
-                            fontSize: '0.67rem',
-                            height: 18
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        <TableCell sx={{ color: '#f0f4ff', whiteSpace: 'nowrap', py: 1, px: 2 }}>
+                          {fmtTime(p.eta)}
+                        </TableCell>
+                        <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.wind} mph</TableCell>
+                        <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.rain} in/hr</TableCell>
+                        <TableCell sx={{ color: '#f0f4ff', py: 1, px: 2 }}>{d.snow} in/hr</TableCell>
+                        <TableCell sx={{ py: 1, px: 2 }}>
+                          <Chip
+                            size="small"
+                            label={d.lvlName}
+                            sx={{ bgcolor: d.color, color: '#fff', fontWeight: 600, fontSize: '0.7rem', height: 20 }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ color: d.lvl >= 2 ? '#fca5a5' : '#94a3b8', fontSize: '0.75rem', py: 1, px: 2, fontWeight: d.lvl >= 2 ? 600 : 400 }}>
+                          {d.reasons.length ? d.reasons.join(', ') : 'Safe driving conditions'}
+                        </TableCell>
+                        <TableCell sx={{ py: 1, px: 2 }}>
+                          <Chip
+                            size="small"
+                            label={p.level_name}
+                            variant="outlined"
+                            sx={{
+                              borderColor: COLORS[p.level],
+                              color: COLORS[p.level],
+                              fontWeight: 600,
+                              fontSize: '0.67rem',
+                              height: 18
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </TableContainer>
