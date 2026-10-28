@@ -46,6 +46,11 @@ class PlanApi(SimpleTestCase):
         self.assertEqual(self.post().status_code, 200)
         self.assertEqual(m.call_args[0][4], 25)
 
+    @mock.patch("routing.views.plan_trip", return_value={"ok": True})
+    def test_valid_request_auto_interval(self, m):
+        self.assertEqual(self.post(interval_mi="auto").status_code, 200)
+        self.assertEqual(m.call_args[0][4], "auto")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -16,13 +16,25 @@ class PlanSerializer(serializers.Serializer):
     destination = serializers.CharField(max_length=200)
     departure = serializers.DateTimeField()
     weight_lb = serializers.FloatField(min_value=1, max_value=150000)
-    interval_mi = serializers.ChoiceField(choices=[10, 25, 50], default=25)
+    interval_mi = serializers.CharField(required=False, default="25")
 
     def validate_departure(self, value):
         now = dt.datetime.now(dt.timezone.utc)
         if not now - dt.timedelta(hours=1) <= value <= now + dt.timedelta(hours=72):
             raise serializers.ValidationError("Must be within the next 72 hours (the weather forecast window).")
         return value
+
+    def validate_interval_mi(self, value):
+        s = str(value).strip().lower()
+        if s in ("auto", ""):
+            return "auto"
+        try:
+            val = int(s)
+            if val in (10, 25, 50):
+                return val
+        except (ValueError, TypeError):
+            pass
+        raise serializers.ValidationError("Interval must be 10, 25, 50, or 'auto'.")
 
 
 @api_view(["POST"])

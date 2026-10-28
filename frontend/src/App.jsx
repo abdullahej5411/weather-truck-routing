@@ -147,7 +147,7 @@ export default function App() {
     destination: '',
     departure: localInput(new Date(Date.now() + 36e5)),
     weight: 40000,
-    interval: 25,
+    interval: 'auto',
   });
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -172,7 +172,7 @@ export default function App() {
           destination: f.destination,
           departure: new Date(f.departure).toISOString(),
           weight_lb: +f.weight,
-          interval_mi: +f.interval,
+          interval_mi: f.interval === 'auto' ? 'auto' : +f.interval,
         }),
       });
       const j = await r.json();
@@ -286,8 +286,40 @@ export default function App() {
                   sx={{ flex: 1 }}
                 />
                 <TextField select label="Interval" value={f.interval} onChange={set('interval')} sx={{ flex: 1 }}>
+                  <MenuItem value="auto">Auto (Smart)</MenuItem>
                   {[10, 25, 50].map((n) => (<MenuItem key={n} value={n}>{n} mi</MenuItem>))}
                 </TextField>
+              </Stack>
+
+              {/* Load weight quick presets */}
+              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: -0.5 }}>
+                <Typography variant="caption" sx={{ color: '#7c8db5', fontSize: '0.68rem', mr: 0.25 }}>
+                  Presets:
+                </Typography>
+                {[
+                  { label: 'Empty (15k)', val: 15000 },
+                  { label: 'Half (35k)', val: 35000 },
+                  { label: 'Standard (40k)', val: 40000 },
+                  { label: 'Max (80k)', val: 80000 },
+                ].map((p) => (
+                  <Chip
+                    key={p.val}
+                    label={p.label}
+                    size="small"
+                    clickable
+                    onClick={() => setF((prev) => ({ ...prev, weight: p.val }))}
+                    variant={+f.weight === p.val ? 'filled' : 'outlined'}
+                    sx={{
+                      fontSize: '0.65rem',
+                      height: 20,
+                      cursor: 'pointer',
+                      bgcolor: +f.weight === p.val ? 'rgba(245,184,46,0.2)' : 'transparent',
+                      borderColor: +f.weight === p.val ? '#f5b82e' : 'rgba(255,255,255,0.12)',
+                      color: +f.weight === p.val ? '#f5b82e' : '#7c8db5',
+                      '&:hover': { bgcolor: 'rgba(245,184,46,0.15)', color: '#f5b82e' },
+                    }}
+                  />
+                ))}
               </Stack>
 
               <Button

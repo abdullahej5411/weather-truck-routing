@@ -8,6 +8,34 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Custom Global Dark/Amber Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 184, 46, 0.35) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 184, 46, 0.35);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 184, 46, 0.65);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Leaflet fills the map pane */
 .leaflet-container {
   width: 100%;
@@ -18,4 +46,4 @@ html, body, #root {
 .heat { filter: blur(18px); }
 
 /* Tooltip cursor on checkpoint rows */
-tr[title] { cursor: help; }
+tr[title], div[title] { cursor: help; }

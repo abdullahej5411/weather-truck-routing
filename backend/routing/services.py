@@ -184,9 +184,12 @@ CRITERIA = [("No Travel miles", "no_travel_mi", "mi"), ("Severe miles", "severe_
             ("High miles", "high_mi", "mi"), ("average risk", "avg_risk", "/4"), ("travel time", None, "h")]
 
 
-def plan_trip(origin, destination, depart, weight, step):
+def plan_trip(origin, destination, depart, weight, step="25"):
     o, d = geocode(origin), geocode(destination)
     raw = get_routes(o, d)
+    if step == "auto" or not step:
+        longest = max((r["miles"] for r in raw), default=300)
+        step = 50 if longest > 600 else (25 if longest > 200 else 10)
     for r in raw:
         r["pts"] = sample(r["coords"], r["miles"], step)
     wx = fetch_weather([(p["lat"], p["lon"]) for r in raw for p in r["pts"]])
