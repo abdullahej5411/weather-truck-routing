@@ -1,6 +1,9 @@
 import datetime as dt
+import logging
 
 import requests
+
+log = logging.getLogger(__name__)
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -33,5 +36,13 @@ def plan(request):
         return Response(plan_trip(d["origin"], d["destination"], d["departure"], d["weight_lb"], d["interval_mi"]))
     except ValueError as e:
         return Response({"error": str(e)}, status=400)
-    except requests.RequestException:
-        return Response({"error": "A routing or weather service is unavailable. Try again in a moment."}, status=502)
+    except requests.RequestException as exc:
+        log.error("External API error: %s", exc)
+        msg = str(exc)
+        hint = "routing" if "osrm" in msg.lower() or "router.project" in msg.lower() else \
+               "geocoding" if "nominatim" in msg.lower() else \
+               "weather" if "open-meteo" in msg.lower() else "routing or weather"
+        return Response(
+            {"error": f"The {hint} service is temporarily unavailable. Please wait a moment and try again."},
+            status=502,
+        )

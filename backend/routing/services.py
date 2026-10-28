@@ -27,9 +27,12 @@ def geocode(q):
         return hit
     time.sleep(max(0, 1.1 - (time.time() - _last_geocode)))  # Nominatim: max 1 req/s
     _last_geocode = time.time()
-    r = requests.get("https://nominatim.openstreetmap.org/search",
-                     params={"q": q, "format": "json", "limit": 1}, headers=UA, timeout=10)
-    r.raise_for_status()
+    try:
+        r = requests.get("https://nominatim.openstreetmap.org/search",
+                         params={"q": q, "format": "json", "limit": 1}, headers=UA, timeout=10)
+        r.raise_for_status()
+    except requests.RequestException as exc:
+        raise requests.RequestException(f"Nominatim geocoding failed: {exc}") from exc
     data = r.json()
     if not data:
         raise ValueError(f"Could not find a location for “{q}”. Try adding the state or country.")
@@ -39,16 +42,27 @@ def geocode(q):
 
 
 def _osrm(points, alternatives=False):
+    """Call OSRM with up to 2 retries (public server is occasionally slow)."""
     coords = ";".join(f"{lon},{lat}" for lat, lon in points)
-    r = requests.get(f"https://router.project-osrm.org/route/v1/driving/{coords}",
-                     params={"alternatives": "3" if alternatives else "false", "overview": "full",
-                             "geometries": "geojson"}, headers=UA, timeout=30)
-    r.raise_for_status()
-    data = r.json()
-    if data.get("code") != "Ok":
-        raise ValueError("No drivable route found between those locations.")
-    return [{"coords": [(y, x) for x, y in rt["geometry"]["coordinates"]],
-             "miles": rt["distance"] / 1609.344, "hours": rt["duration"] / 3600} for rt in data["routes"]]
+    url = f"https://router.project-osrm.org/route/v1/driving/{coords}"
+    params = {"alternatives": "3" if alternatives else "false",
+              "overview": "full", "geometries": "geojson"}
+    last_exc = None
+    for attempt in range(3):
+        try:
+            r = requests.get(url, params=params, headers=UA, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            if data.get("code") != "Ok":
+                raise ValueError("No drivable route found between those locations.")
+            return [{"coords": [(y, x) for x, y in rt["geometry"]["coordinates"]],
+                     "miles": rt["distance"] / 1609.344, "hours": rt["duration"] / 3600}
+                    for rt in data["routes"]]
+        except requests.RequestException as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)  # 1s, 2s back-off
+    raise requests.RequestException(f"OSRM routing failed after 3 attempts: {last_exc}") from last_exc
 
 
 def get_routes(o, d):
@@ -104,11 +118,15 @@ def fetch_weather(points):
             need.append(k)
     for i in range(0, len(need), 50):
         chunk = need[i:i + 50]
-        r = requests.get("https://api.open-meteo.com/v1/forecast", params={
-            "latitude": ",".join(str(c[0]) for c in chunk), "longitude": ",".join(str(c[1]) for c in chunk),
-            "hourly": "wind_speed_10m,rain,snowfall", "wind_speed_unit": "mph",
-            "precipitation_unit": "inch", "forecast_days": 5, "timezone": "UTC"}, timeout=30)
-        r.raise_for_status()
+        try:
+            r = requests.get("https://api.open-meteo.com/v1/forecast", params={
+                "latitude": ",".join(str(c[0]) for c in chunk),
+                "longitude": ",".join(str(c[1]) for c in chunk),
+                "hourly": "wind_speed_10m,rain,snowfall", "wind_speed_unit": "mph",
+                "precipitation_unit": "inch", "forecast_days": 5, "timezone": "UTC"}, timeout=30)
+            r.raise_for_status()
+        except requests.RequestException as exc:
+            raise requests.RequestException(f"Open-Meteo weather fetch failed: {exc}") from exc
         data = r.json()
         for k, d in zip(chunk, data if isinstance(data, list) else [data]):
             h = d["hourly"]

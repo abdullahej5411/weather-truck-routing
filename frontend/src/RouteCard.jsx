@@ -28,7 +28,7 @@ export default function RouteCard({ r, selected, onSelect }) {
             {r.recommended && (
               <Chip
                 size="small"
-                label="★ Recommended"
+                label="Recommended"
                 sx={{
                   bgcolor: 'rgba(59,130,246,0.12)',
                   color: '#60a5fa',
@@ -39,7 +39,7 @@ export default function RouteCard({ r, selected, onSelect }) {
               />
             )}
             {r.summary.no_travel_mi >= 1 && (
-              <Chip size="small" color="error" label="⚠ No Travel miles" sx={{ fontSize: '0.67rem' }} />
+              <Chip size="small" color="error" label="No Travel miles" sx={{ fontSize: '0.67rem' }} />
             )}
           </Stack>
           <Typography variant="body2" sx={{ color: '#7c8db5', mb: 0.3 }}>
