@@ -22,6 +22,4 @@ local_settings.py
 Thumbs.db
 .vscode/
 .idea/
-Claude Response/
-Claude Response 2/
 *.zip
