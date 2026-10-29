@@ -1,5 +1,17 @@
 # Weather-Aware Truck Routing Platform
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django 5" />
+  <img src="https://img.shields.io/badge/Django_REST-Framework-A30000?style=for-the-badge&logo=django&logoColor=white" alt="Django REST Framework" />
+  <img src="https://img.shields.io/badge/React-18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React 18" />
+  <img src="https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Material_UI-v6-007FFF?style=for-the-badge&logo=mui&logoColor=white" alt="Material UI" />
+  <img src="https://img.shields.io/badge/Leaflet-1.9-199900?style=for-the-badge&logo=leaflet&logoColor=white" alt="Leaflet" />
+  <img src="https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Redis-Cache-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
+</p>
+
 A full-stack logistics and routing engine built with **React**, **Material UI**, **Django**, and **Django REST Framework**. The application evaluates weather hazards along alternative commercial trucking corridors, computes dynamic risk scores factoring in gross vehicle weight and checkpoint ETAs, and recommends optimal routes balancing travel time against severe meteorological risks.
 
 ---
@@ -19,12 +31,12 @@ A full-stack logistics and routing engine built with **React**, **Material UI**,
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | React 18, Material UI (MUI v6), Vite | Responsive dispatcher dashboard, dark theme design system |
-| **Mapping** | Leaflet, React-Leaflet | Route geometry visualization, radar corridors, interactive markers |
-| **Backend** | Python 3.12, Django 5, Django REST Framework | RESTful trip planning API, validation, routing & risk algorithms |
-| **Caching** | Django Cache (LocMem / Redis) | Shared caching for geocoding (24h) and weather data (15 min) |
-| **Deployment** | WhiteNoise, Gunicorn, Docker Compose | Single-service container deployment, static asset bundling |
-| **Upstream APIs** | Nominatim, OSRM, Open-Meteo | Zero-key geocoding, road routing, and hourly atmospheric forecasts |
+| **Frontend** | [![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/) [![Material UI](https://img.shields.io/badge/Material_UI_v6-007FFF?style=flat-square&logo=mui&logoColor=white)](https://mui.com/) [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/) | Responsive dispatcher dashboard, dark theme design system |
+| **Mapping** | [![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=flat-square&logo=leaflet&logoColor=white)](https://leafletjs.com/) [![Esri](https://img.shields.io/badge/Esri_ArcGIS-005E95?style=flat-square&logo=arcgis&logoColor=white)](https://www.arcgis.com/) | Route geometry visualization, radar corridors, interactive markers |
+| **Backend** | [![Python](https://img.shields.io/badge/Python_3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/) [![Django](https://img.shields.io/badge/Django_5-092E20?style=flat-square&logo=django&logoColor=white)](https://djangoproject.com/) [![DRF](https://img.shields.io/badge/DRF-A30000?style=flat-square&logo=django&logoColor=white)](https://www.django-rest-framework.org/) | RESTful trip planning API, validation, routing & risk algorithms |
+| **Caching** | [![Redis](https://img.shields.io/badge/Redis_7-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io/) [![Django Cache](https://img.shields.io/badge/LocMem_/_Redis-092E20?style=flat-square&logo=django&logoColor=white)](https://docs.djangoproject.com/en/5.0/topics/cache/) | Shared caching for geocoding (24h) and weather data (15 min) |
+| **Deployment** | [![WhiteNoise](https://img.shields.io/badge/WhiteNoise-2B5B84?style=flat-square)](http://whitenoise.evans.io/) [![Gunicorn](https://img.shields.io/badge/Gunicorn-499848?style=flat-square&logo=gunicorn&logoColor=white)](https://gunicorn.org/) [![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/) | Single-service container deployment, static asset bundling, gzip middleware |
+| **Upstream APIs** | [![OpenStreetMap](https://img.shields.io/badge/Nominatim-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white)](https://nominatim.openstreetmap.org/) [![OSRM](https://img.shields.io/badge/OSRM_Routing-000000?style=flat-square)](https://project-osrm.org/) [![Open-Meteo](https://img.shields.io/badge/Open--Meteo-FF9900?style=flat-square)](https://open-meteo.com/) | Zero-key geocoding, road routing, and hourly atmospheric forecasts |
 
 ---
 
@@ -125,12 +137,14 @@ The application is structured for cost-effective, zero-configuration cloud hosti
 
 - **Single-Service Delivery:** `frontend/dist` is compiled directly into static production assets and served by Django using WhiteNoise. No standalone Node.js runtime is required in production.
 - **Cloud Blueprint:** A deployment configuration is provided in `render.yaml` for instantaneous deployment on Render or similar container-native platforms.
-- **Caching Strategy:** Geocoded coordinate lookups are cached for 24 hours. Weather forecast blocks are batched in 50-location chunks and cached for 15 minutes to respect upstream rate limits.
+- **Caching Strategy:** Geocoded coordinate lookups are cached for 24 hours. Weather forecast blocks are batched in 30-location chunks and cached for 15 minutes to respect upstream rate limits.
 - **Rate Limiting:** Django REST Framework applies an anonymous throttle of 30 requests per minute to safeguard public upstream APIs against abuse.
 
 ---
 
 ## Operational Considerations
+
+0. **No simulated data:** If Open-Meteo cannot be reached after retries, the API returns a clear 502 error. The app never substitutes invented weather.
 
 1. **Upstream Rate Limits:** OpenStreetMap Nominatim enforces an operating limit of 1 request per second. The backend includes an automated in-process throttle and caching layer to maintain compliance.
 2. **Forecast Window:** Open-Meteo high-resolution hourly forecast models operate reliably within a 72-hour window. The backend strictly validates departure times within this timeframe.

@@ -2,6 +2,7 @@ import datetime as dt
 import unittest
 from unittest import mock
 
+import requests
 from django.test import SimpleTestCase
 
 from .risk import assess
@@ -72,6 +73,17 @@ class PlanApi(SimpleTestCase):
     def test_valid_request_auto_interval(self, m):
         self.assertEqual(self.post(interval_mi="auto").status_code, 200)
         self.assertEqual(m.call_args[0][4], "auto")
+
+
+class WeatherUpstreamFailure(SimpleTestCase):
+    @mock.patch("routing.services.time.sleep")
+    @mock.patch("routing.services.requests.get", side_effect=requests.ConnectionError("down"))
+    def test_raises_instead_of_inventing_weather(self, _get, _sleep):
+        from django.core.cache import cache
+        from .services import fetch_weather
+        cache.clear()
+        with self.assertRaises(requests.RequestException):
+            fetch_weather([(41.12, -87.34)])
 
 
 if __name__ == "__main__":

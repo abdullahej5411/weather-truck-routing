@@ -112,23 +112,9 @@ def _k(lat, lon):
     return (round(lat, 2), round(lon, 2))
 
 
-def _generate_fallback_weather(chunk, start_time):
-    out = {}
-    for lat, lon in chunk:
-        seed = int(abs(lat * 100 + lon * 10)) % 100
-        wind, rain, snow = [], [], []
-        for h in range(120):
-            c = math.sin((h + seed) / 6.0)
-            wind.append(round(max(5.0, 16.0 + 17.0 * c + (seed % 6)), 1))
-            rain.append(round(max(0.0, (0.32 * c - 0.12)) if (seed % 3 == 0) else 0.0, 2))
-            snow.append(round(max(0.0, (0.75 * c - 0.25)) if (lat > 37.0 and seed % 4 == 0) else 0.0, 2))
-        out[(lat, lon)] = {"start": start_time, "wind": wind, "rain": rain, "snow": snow}
-    return out
-
-
 def fetch_weather(points):
     """Hourly wind (mph), rain and snowfall (in/hr) per location; batched and cached for 15 min.
-    Features automated retries and graceful fallback if upstream API is temporarily rate-limited."""
+    Retries on failure, then raises: the app never shows invented weather."""
     out, need = {}, []
     for lat, lon in points:
         k = _k(lat, lon)
@@ -138,11 +124,10 @@ def fetch_weather(points):
         elif k not in need and k not in out:
             need.append(k)
 
-    now_utc = dt.datetime.now(dt.timezone.utc).replace(minute=0, second=0, microsecond=0)
     for i in range(0, len(need), 30):
         chunk = need[i:i + 30]
-        data = None
-        for attempt in range(2):
+        data, last_exc = None, None
+        for attempt in range(3):
             try:
                 r = requests.get(
                     "https://api.open-meteo.com/v1/forecast",
@@ -155,33 +140,28 @@ def fetch_weather(points):
                         "forecast_days": 5,
                         "timezone": "UTC",
                     },
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                    headers=UA,
                     timeout=15,
                 )
                 r.raise_for_status()
                 data = r.json()
                 break
-            except requests.RequestException:
-                if attempt < 1:
-                    time.sleep(1.0)
-
-        if data:
-            for k, d in zip(chunk, data if isinstance(data, list) else [data]):
-                h = d["hourly"]
-                w = {
-                    "start": dt.datetime.fromisoformat(h["time"][0]).replace(tzinfo=dt.timezone.utc),
-                    "wind": [v or 0 for v in h["wind_speed_10m"]],
-                    "rain": [v or 0 for v in h["rain"]],
-                    "snow": [v or 0 for v in h["snowfall"]],
-                }
-                out[k] = w
-                cache.set("wx:%s,%s" % k, w, 900)
-        else:
-            # Graceful degradation if upstream Open-Meteo is temporarily rate-limiting the cloud datacenter IP
-            fb = _generate_fallback_weather(chunk, now_utc)
-            for k, w in fb.items():
-                out[k] = w
-                cache.set("wx:%s,%s" % k, w, 900)
+            except requests.RequestException as exc:
+                last_exc = exc
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+        if data is None:  # never substitute invented weather: fail with a clear error instead
+            raise requests.RequestException(f"Open-Meteo weather request failed: {last_exc}") from last_exc
+        for k, d in zip(chunk, data if isinstance(data, list) else [data]):
+            h = d["hourly"]
+            w = {
+                "start": dt.datetime.fromisoformat(h["time"][0]).replace(tzinfo=dt.timezone.utc),
+                "wind": [v or 0 for v in h["wind_speed_10m"]],
+                "rain": [v or 0 for v in h["rain"]],
+                "snow": [v or 0 for v in h["snowfall"]],
+            }
+            out[k] = w
+            cache.set("wx:%s,%s" % k, w, 900)
 
     return out
 
@@ -205,7 +185,6 @@ def analyse(i, r, wx, depart, weight):
         # Heatmap: conditions at this checkpoint 0..48 h after departure.
         fc_assessments = [assess(*_at(w, depart + dt.timedelta(hours=h)), weight) for h in range(49)]
         p["forecast"] = [a[0] for a in fc_assessments]
-        p["forecast_reasons"] = [a[1] for a in fc_assessments]
         p["forecast_weather"] = [[round(v, 2) for v in _at(w, depart + dt.timedelta(hours=h))] for h in range(49)]
         lo = (ms[n - 1] + ms[n]) / 2 if n else ms[0]  # each checkpoint owns the miles around it
         hi = (ms[n] + ms[n + 1]) / 2 if n < len(ms) - 1 else ms[n]
@@ -240,7 +219,7 @@ CRITERIA = [("No Travel miles", "no_travel_mi", "mi"), ("Severe miles", "severe_
             ("High miles", "high_mi", "mi"), ("average risk", "avg_risk", "/4"), ("travel time", None, "h")]
 
 
-def plan_trip(origin, destination, depart, weight, step="25"):
+def plan_trip(origin, destination, depart, weight, step=25):
     o, d = geocode(origin), geocode(destination)
     raw = get_routes(o, d)
     if step == "auto" or not step:

@@ -459,7 +459,7 @@ export default function App() {
                             </Typography>
                           </Stack>
                           <Typography variant="caption" sx={{ color: '#d97706', fontSize: '0.64rem', fontWeight: 600 }}>
-                            Live Simulation
+                            Forecast +{hour}h
                           </Typography>
                         </Stack>
                       )}

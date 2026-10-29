@@ -2,13 +2,13 @@ import datetime as dt
 import logging
 
 import requests
-
-log = logging.getLogger(__name__)
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .services import plan_trip
+
+log = logging.getLogger(__name__)
 
 
 class PlanSerializer(serializers.Serializer):
