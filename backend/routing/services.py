@@ -137,7 +137,7 @@ def fetch_weather(points):
                         "hourly": "wind_speed_10m,rain,snowfall",
                         "wind_speed_unit": "mph",
                         "precipitation_unit": "inch",
-                        "forecast_days": 5,
+                        "forecast_days": 7,
                         "timezone": "UTC",
                     },
                     headers=UA,
@@ -219,15 +219,51 @@ CRITERIA = [("No Travel miles", "no_travel_mi", "mi"), ("Severe miles", "severe_
             ("High miles", "high_mi", "mi"), ("average risk", "avg_risk", "/4"), ("travel time", None, "h")]
 
 
-def plan_trip(origin, destination, depart, weight, step=25):
+def prepare(origin, destination, step):
+    """Geocode, fetch (cached) routes and place checkpoints. Shared by both API steps."""
     o, d = geocode(origin), geocode(destination)
-    raw = get_routes(o, d)
+    key = "rt:%.4f,%.4f:%.4f,%.4f" % (o["lat"], o["lon"], d["lat"], d["lon"])
+    raw = cache.get(key)
+    if raw is None:
+        raw = get_routes(o, d)
+        cache.set(key, raw, 900)
     if step == "auto" or not step:
         longest = max((r["miles"] for r in raw), default=300)
         step = 50 if longest > 600 else (25 if longest > 200 else 10)
-    for r in raw:
-        r["pts"] = sample(r["coords"], r["miles"], step)
-    wx = fetch_weather([(p["lat"], p["lon"]) for r in raw for p in r["pts"]])
+    return o, d, [dict(r, pts=sample(r["coords"], r["miles"], step)) for r in raw], step
+
+
+def list_checkpoints(origin, destination, step):
+    """Step 1: the unique (rounded) points the client must fetch weather for."""
+    _, _, raw, _ = prepare(origin, destination, step)
+    return {"points": [list(k) for k in dict.fromkeys(_k(p["lat"], p["lon"]) for r in raw for p in r["pts"])]}
+
+
+def parse_weather(items):
+    """Validate client-supplied hourly weather: [{lat, lon, start, wind, rain, snow}, ...]."""
+    out = {}
+    for it in items:
+        try:
+            start = dt.datetime.fromisoformat(str(it["start"]).replace("Z", "+00:00"))
+            w = {"start": start if start.tzinfo else start.replace(tzinfo=dt.timezone.utc)}
+            for n in ("wind", "rain", "snow"):
+                w[n] = [float(v or 0) for v in it[n]]
+            k = _k(float(it["lat"]), float(it["lon"]))
+        except (KeyError, TypeError, ValueError):
+            raise ValueError("Invalid weather data.")
+        if not all(120 <= len(w[n]) <= 400 for n in ("wind", "rain", "snow")):
+            raise ValueError("Invalid weather data.")
+        out[k] = w
+    return out
+
+
+def plan_trip(origin, destination, depart, weight, step=25, weather=None):
+    """Step 2. `weather` comes from the browser (avoids shared-IP rate limits); if absent we fetch it."""
+    o, d, raw, step = prepare(origin, destination, step)
+    pts = [(p["lat"], p["lon"]) for r in raw for p in r["pts"]]
+    wx = parse_weather(weather) if weather is not None else fetch_weather(pts)
+    if any(_k(*p) not in wx for p in pts):
+        raise ValueError("Weather data was missing for some checkpoints. Please try again.")
     routes = [analyse(i, r, wx, depart, weight) for i, r in enumerate(raw)]
     ranked = sorted(routes, key=rank_key)
     for n, r in enumerate(ranked):

@@ -86,5 +86,29 @@ class WeatherUpstreamFailure(SimpleTestCase):
             fetch_weather([(41.12, -87.34)])
 
 
+class ClientWeather(SimpleTestCase):
+    def item(self, **over):
+        return {"lat": 41.1, "lon": -87.3, "start": "2026-10-29T00:00", "wind": [1] * 168, "rain": [0] * 168, "snow": [0] * 168, **over}
+
+    def test_parse_accepts_valid_data(self):
+        from .services import parse_weather
+        w = parse_weather([self.item()])
+        self.assertIn((41.1, -87.3), w)
+
+    def test_parse_rejects_short_or_malformed_data(self):
+        from .services import parse_weather
+        with self.assertRaises(ValueError):
+            parse_weather([self.item(wind=[1] * 10)])
+        with self.assertRaises(ValueError):
+            parse_weather([{"lat": 1}])
+
+    @mock.patch("routing.views.list_checkpoints", return_value={"points": [[1.0, 2.0]]})
+    def test_checkpoints_endpoint(self, m):
+        body = {"origin": "A", "destination": "B", "weight_lb": 40000,
+                "departure": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=2)).isoformat()}
+        r = self.client.post("/api/checkpoints", body, content_type="application/json")
+        self.assertEqual((r.status_code, r.json()["points"]), (200, [[1.0, 2.0]]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -8,7 +8,7 @@ import {
 import CheckpointTable from './CheckpointTable';
 import MapView from './MapView';
 import RouteCard from './RouteCard';
-import { API, COLORS, NAMES, fmtTime, localInput } from './lib';
+import { API, COLORS, NAMES, fetchWeather, fmtTime, localInput } from './lib';
 
 const theme = createTheme({
   palette: {
@@ -173,19 +173,22 @@ export default function App() {
     setBusy(true);
     setErr('');
     try {
-      const r = await fetch(`${API}/api/plan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          origin: f.origin,
-          destination: f.destination,
-          departure: new Date(f.departure).toISOString(),
-          weight_lb: +f.weight,
-          interval_mi: f.interval === 'auto' ? 'auto' : +f.interval,
-        }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || j.detail || 'Request failed.');
+      const post = async (path, body) => {
+        const r = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || data.detail || 'Request failed.');
+        return data;
+      };
+      const base = {
+        origin: f.origin,
+        destination: f.destination,
+        departure: new Date(f.departure).toISOString(),
+        weight_lb: +f.weight,
+        interval_mi: f.interval === 'auto' ? 'auto' : +f.interval,
+      };
+      const { points } = await post('/api/checkpoints', base);
+      const weather = await fetchWeather(points);
+      const j = await post('/api/plan', { ...base, weather });
       setRes(j);
       setSel(j.recommended_id);
       setHour(0);

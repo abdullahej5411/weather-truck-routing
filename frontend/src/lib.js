@@ -29,3 +29,30 @@ export function assessWeather(wind, rain, snow, weight = 40000) {
   if (sl > 0) reasons.push(`Snow ${s.toFixed(2)} in/h: ${NAMES[sl]}`);
   return { lvl, lvlName: NAMES[lvl], color: COLORS[lvl], reasons };
 }
+
+// Weather is fetched from the browser so rate limits apply per visitor, not to the shared server IP.
+export async function fetchWeather(points) {
+  const chunks = [];
+  for (let i = 0; i < points.length; i += 50) chunks.push(points.slice(i, i + 50));
+  const results = await Promise.all(chunks.map(async (c) => {
+    const q = new URLSearchParams({
+      latitude: c.map((p) => p[0]).join(','), longitude: c.map((p) => p[1]).join(','),
+      hourly: 'wind_speed_10m,rain,snowfall', wind_speed_unit: 'mph', precipitation_unit: 'inch',
+      forecast_days: 7, timezone: 'UTC',
+    });
+    let status = 'network error';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`);
+        if (r.ok) { const d = await r.json(); return Array.isArray(d) ? d : [d]; }
+        status = `HTTP ${r.status}`;
+      } catch { /* network error: retry */ }
+      await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
+    }
+    throw new Error(`The weather service is unavailable (${status}). Please try again in a moment.`);
+  }));
+  return chunks.flatMap((c, ci) => c.map((p, i) => {
+    const h = results[ci][i].hourly;
+    return { lat: p[0], lon: p[1], start: h.time[0], wind: h.wind_speed_10m, rain: h.rain, snow: h.snowfall };
+  }));
+}

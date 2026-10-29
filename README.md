@@ -128,6 +128,8 @@ python manage.py test routing
 - Strict 5-tier recommendation decision hierarchy.
 - Input validation (rejection of zero/negative weights and departure dates exceeding the 72-hour forecast horizon).
 - Spacing interval parameter defaults and validation.
+- Upstream failure handling ensuring simulated weather is never substituted.
+- Client-supplied weather data validation and two-step `/api/checkpoints` endpoint handling.
 
 ---
 
@@ -144,6 +146,7 @@ The application is structured for cost-effective, zero-configuration cloud hosti
 
 ## Operational Considerations
 
+0. **Weather is fetched by the browser:** Open-Meteo's free API limits requests per IP, and shared cloud hosting IPs get rate-limited (HTTP 429). The browser fetches the forecast for the checkpoints returned by `/api/checkpoints`, then sends it to `/api/plan` for scoring. The server fetches weather itself only if none is supplied.
 0. **No simulated data:** If Open-Meteo cannot be reached after retries, the API returns a clear 502 error. The app never substitutes invented weather.
 
 1. **Upstream Rate Limits:** OpenStreetMap Nominatim enforces an operating limit of 1 request per second. The backend includes an automated in-process throttle and caching layer to maintain compliance.
